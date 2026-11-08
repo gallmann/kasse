@@ -41,6 +41,7 @@ body {
   height: 100%;
   width: 100%;
   overflow: hidden;
+  overscroll-behavior: none;
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   background-color: var(--bg-app);
   color: var(--text-main);

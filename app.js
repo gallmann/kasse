@@ -402,45 +402,90 @@ function initMobileSheetSwipe() {
   const panel = document.getElementById('pos-cart-panel');
   const backdrop = document.getElementById('mobile-cart-backdrop');
   const dock = document.getElementById('mobile-bottom-dock');
+  const cartItemsEl = document.getElementById('cart-items-list');
   if (!panel || !backdrop) return;
 
   let swipeState = null;
 
-  function onSheetPointerMove(e) {
-    if (!swipeState || e.pointerId !== swipeState.pointerId) return;
-    const rawDelta = e.clientY - swipeState.startY;
+  function startSwipe(clientX, clientY, target) {
+    if (window.innerWidth > 720 || !panel.classList.contains('mobile-open')) return false;
+    const handle = target.closest('#cart-sheet-handle');
+    const inItems = target.closest('#cart-items-list');
+    const interactiveControl = target.closest('.qty-btn, .cash-btn, .btn-checkout, .btn-clear-cart, .btn-close-mobile-cart, .btn-reset-cash, .btn-undo-last');
 
-    if (!swipeState.hasMoved && Math.abs(rawDelta) > 5) {
+    // Don't hijack taps on interactive buttons unless it's the drag handle
+    if (interactiveControl && !handle) return false;
+
+    const now = performance.now();
+    swipeState = {
+      startX: clientX,
+      startY: clientY,
+      lastY: clientY,
+      prevY: clientY,
+      lastTime: now,
+      prevTime: now,
+      hasMoved: false,
+      aborted: false,
+      startedOnHandle: Boolean(handle),
+      startedInItems: Boolean(inItems),
+      sheetHeight: panel.offsetHeight || 400
+    };
+    return true;
+  }
+
+  function moveSwipe(clientX, clientY, originalEvent) {
+    if (!swipeState || swipeState.aborted) return;
+    const rawDeltaY = clientY - swipeState.startY;
+    const rawDeltaX = clientX - swipeState.startX;
+
+    if (!swipeState.hasMoved) {
+      if (Math.abs(rawDeltaY) < 6 && Math.abs(rawDeltaX) < 6) return;
+
+      // If horizontal movement dominates, abort sheet swipe
+      if (Math.abs(rawDeltaX) > Math.abs(rawDeltaY) * 1.2) {
+        swipeState.aborted = true;
+        return;
+      }
+
+      // If started inside the scrollable cart items list, only drag sheet when at top and pulling down
+      if (swipeState.startedInItems) {
+        const atTop = !cartItemsEl || cartItemsEl.scrollTop <= 2;
+        if (!atTop || rawDeltaY <= 0) {
+          swipeState.aborted = true;
+          return;
+        }
+      }
+
       swipeState.hasMoved = true;
       panel.classList.add('sheet-dragging');
     }
 
     if (swipeState.hasMoved) {
-      e.preventDefault();
+      if (originalEvent.cancelable) {
+        originalEvent.preventDefault();
+      }
       swipeState.prevY = swipeState.lastY;
       swipeState.prevTime = swipeState.lastTime;
-      swipeState.lastY = e.clientY;
+      swipeState.lastY = clientY;
       swipeState.lastTime = performance.now();
 
-      const translateY = rawDelta >= 0 ? rawDelta : rawDelta * 0.15;
+      const translateY = rawDeltaY >= 0 ? rawDeltaY : rawDeltaY * 0.15;
       panel.style.transform = `translateY(${translateY}px)`;
-      const progress = Math.min(1, Math.max(0, rawDelta / swipeState.sheetHeight));
+      const progress = Math.min(1, Math.max(0, rawDeltaY / swipeState.sheetHeight));
       backdrop.style.opacity = String(1 - progress * 0.85);
     }
   }
 
-  function onSheetPointerUp(e) {
-    if (!swipeState || e.pointerId !== swipeState.pointerId) return;
-    const { startY, lastY, prevY, lastTime, prevTime, hasMoved, startedOnHandle, sheetHeight } = swipeState;
-
-    window.removeEventListener('pointermove', onSheetPointerMove);
-    window.removeEventListener('pointerup', onSheetPointerUp);
-    window.removeEventListener('pointercancel', onSheetPointerUp);
+  function endSwipe(endClientY) {
+    if (!swipeState) return;
+    const { startY, lastY, prevY, lastTime, prevTime, hasMoved, aborted, startedOnHandle, sheetHeight } = swipeState;
     swipeState = null;
 
     panel.classList.remove('sheet-dragging');
     panel.style.transform = '';
     backdrop.style.opacity = '';
+
+    if (aborted) return;
 
     if (!hasMoved) {
       if (startedOnHandle) {
@@ -449,62 +494,69 @@ function initMobileSheetSwipe() {
       return;
     }
 
-    const totalDeltaY = (e.clientY ?? lastY) - startY;
+    const finalY = typeof endClientY === 'number' ? endClientY : lastY;
+    const totalDeltaY = finalY - startY;
     const dt = Math.max(1, lastTime - prevTime);
     const velocity = (lastY - prevY) / dt; // px per ms
 
-    if (totalDeltaY > 70 || totalDeltaY > sheetHeight * 0.22 || (totalDeltaY > 20 && velocity > 0.35)) {
+    if (totalDeltaY > 55 || totalDeltaY > sheetHeight * 0.18 || (totalDeltaY > 18 && velocity > 0.28)) {
       setMobileCartOpen(false);
     } else {
       setMobileCartOpen(true);
     }
   }
 
-  panel.addEventListener('pointerdown', (e) => {
-    if (window.innerWidth > 720 || !panel.classList.contains('mobile-open')) return;
-    const handle = e.target.closest('#cart-sheet-handle');
-    const header = e.target.closest('.cart-header');
-    const interactiveInHeader = e.target.closest('button, input, select, a');
+  // Touch events for mobile phones / tablets
+  panel.addEventListener('touchstart', (e) => {
+    if (e.touches.length !== 1) return;
+    const t = e.touches[0];
+    startSwipe(t.clientX, t.clientY, e.target);
+  }, { passive: true });
 
-    // Start swipe when dragging handle or non-button area of cart header
-    if (!handle && (!header || interactiveInHeader)) return;
+  panel.addEventListener('touchmove', (e) => {
+    if (!swipeState || e.touches.length !== 1) return;
+    const t = e.touches[0];
+    moveSwipe(t.clientX, t.clientY, e);
+  }, { passive: false });
 
-    const now = performance.now();
-    swipeState = {
-      pointerId: e.pointerId,
-      startY: e.clientY,
-      lastY: e.clientY,
-      prevY: e.clientY,
-      lastTime: now,
-      prevTime: now,
-      hasMoved: false,
-      startedOnHandle: Boolean(handle),
-      sheetHeight: panel.offsetHeight || 400
+  panel.addEventListener('touchend', (e) => {
+    const t = e.changedTouches?.[0];
+    endSwipe(t ? t.clientY : undefined);
+  });
+
+  panel.addEventListener('touchcancel', () => {
+    endSwipe(undefined);
+  });
+
+  // Mouse fallback for testing on desktop responsive view
+  panel.addEventListener('mousedown', (e) => {
+    if (!startSwipe(e.clientX, e.clientY, e.target)) return;
+    const onMouseMove = (ev) => moveSwipe(ev.clientX, ev.clientY, ev);
+    const onMouseUp = (ev) => {
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', onMouseUp);
+      endSwipe(ev.clientY);
     };
-
-    window.addEventListener('pointermove', onSheetPointerMove, { passive: false });
-    window.addEventListener('pointerup', onSheetPointerUp);
-    window.addEventListener('pointercancel', onSheetPointerUp);
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
   });
 
   // Also allow swiping up on the bottom dock to open the sheet
   if (dock) {
     let dockStartY = null;
-    dock.addEventListener('pointerdown', (e) => {
-      if (window.innerWidth > 720) return;
-      dockStartY = e.clientY;
-    });
-    dock.addEventListener('pointermove', (e) => {
-      if (dockStartY === null) return;
-      if (dockStartY - e.clientY > 28) {
+    dock.addEventListener('touchstart', (e) => {
+      if (window.innerWidth > 720 || e.touches.length !== 1) return;
+      dockStartY = e.touches[0].clientY;
+    }, { passive: true });
+    dock.addEventListener('touchmove', (e) => {
+      if (dockStartY === null || e.touches.length !== 1) return;
+      if (dockStartY - e.touches[0].clientY > 24) {
         dockStartY = null;
+        if (e.cancelable) e.preventDefault();
         setMobileCartOpen(true);
       }
-    });
-    dock.addEventListener('pointerup', () => {
-      dockStartY = null;
-    });
-    dock.addEventListener('pointercancel', () => {
+    }, { passive: false });
+    dock.addEventListener('touchend', () => {
       dockStartY = null;
     });
   }
@@ -989,41 +1041,42 @@ function renderMenuEditor() {
   }).join('');
 }
 
-// Pointer-based Drag-and-Drop for Items and Categories (Touch + Mouse)
+// Touch + Mouse Drag-and-Drop for Items and Categories
 function initDragAndDrop() {
   let dragState = null;
 
-  function onPointerMove(e) {
-    if (!dragState || e.pointerId !== dragState.pointerId) return;
-    e.preventDefault();
+  function moveDrag(clientX, clientY, originalEvent) {
+    if (!dragState) return;
+    if (originalEvent.cancelable) {
+      originalEvent.preventDefault();
+    }
 
     const { ghost, dragEl, offsetY, offsetX, mode, scrollContainer } = dragState;
-    ghost.style.top = `${e.clientY - offsetY}px`;
-    ghost.style.left = `${e.clientX - offsetX}px`;
+    ghost.style.top = `${clientY - offsetY}px`;
+    ghost.style.left = `${clientX - offsetX}px`;
 
     // Auto-scroll if near top/bottom of scroll container
     if (scrollContainer) {
       const rect = scrollContainer.getBoundingClientRect();
       const threshold = 60;
-      if (e.clientY < rect.top + threshold) {
+      if (clientY < rect.top + threshold) {
         scrollContainer.scrollTop -= 10;
-      } else if (e.clientY > rect.bottom - threshold) {
+      } else if (clientY > rect.bottom - threshold) {
         scrollContainer.scrollTop += 10;
       }
     }
 
-    const elemBelow = document.elementFromPoint(e.clientX, e.clientY);
+    const elemBelow = document.elementFromPoint(clientX, clientY);
     if (!elemBelow) return;
 
     if (mode === 'item') {
       const targetRow = elemBelow.closest('.editor-item-row');
       if (targetRow && targetRow !== dragEl) {
         const rect = targetRow.getBoundingClientRect();
-        const isAfter = e.clientY > rect.top + rect.height / 2;
+        const isAfter = clientY > rect.top + rect.height / 2;
         targetRow.parentNode.insertBefore(dragEl, isAfter ? targetRow.nextSibling : targetRow);
         return;
       }
-      // If hovering over an empty category list or category header
       const targetCard = elemBelow.closest('.editor-category-card');
       if (targetCard) {
         const list = targetCard.querySelector('.editor-rows-list');
@@ -1039,30 +1092,27 @@ function initDragAndDrop() {
         targetCard.dataset.categoryCard !== FALLBACK_CATEGORY
       ) {
         const rect = targetCard.getBoundingClientRect();
-        const isAfter = e.clientY > rect.top + rect.height / 2;
+        const isAfter = clientY > rect.top + rect.height / 2;
         targetCard.parentNode.insertBefore(dragEl, isAfter ? targetCard.nextSibling : targetCard);
       }
     } else if (mode === 'category-modal') {
       const targetRow = elemBelow.closest('.category-manage-row');
       if (targetRow && targetRow !== dragEl) {
         const rect = targetRow.getBoundingClientRect();
-        const isAfter = e.clientY > rect.top + rect.height / 2;
+        const isAfter = clientY > rect.top + rect.height / 2;
         targetRow.parentNode.insertBefore(dragEl, isAfter ? targetRow.nextSibling : targetRow);
       }
     }
   }
 
-  function onPointerUp(e) {
-    if (!dragState || e.pointerId !== dragState.pointerId) return;
+  function endDrag() {
+    if (!dragState) return;
     const { ghost, dragEl, mode } = dragState;
+    dragState = null;
 
     ghost.remove();
     dragEl.classList.remove('is-dragging-placeholder');
     document.body.classList.remove('is-dragging');
-    window.removeEventListener('pointermove', onPointerMove);
-    window.removeEventListener('pointerup', onPointerUp);
-    window.removeEventListener('pointercancel', onPointerUp);
-    dragState = null;
 
     if (mode === 'item') {
       commitItemOrderFromDOM();
@@ -1073,9 +1123,9 @@ function initDragAndDrop() {
     }
   }
 
-  document.addEventListener('pointerdown', (e) => {
-    const handle = e.target.closest('[data-drag-handle]');
-    if (!handle) return;
+  function beginDrag(clientX, clientY, target, originalEvent) {
+    const handle = target.closest('[data-drag-handle]');
+    if (!handle) return false;
 
     const mode = handle.dataset.dragHandle;
     let dragEl = null;
@@ -1092,8 +1142,10 @@ function initDragAndDrop() {
       scrollContainer = document.getElementById('categories-manage-list');
     }
 
-    if (!dragEl) return;
-    e.preventDefault();
+    if (!dragEl) return false;
+    if (originalEvent.cancelable) {
+      originalEvent.preventDefault();
+    }
 
     const rect = dragEl.getBoundingClientRect();
     const ghost = dragEl.cloneNode(true);
@@ -1108,18 +1160,49 @@ function initDragAndDrop() {
     document.body.classList.add('is-dragging');
 
     dragState = {
-      pointerId: e.pointerId,
       mode,
       dragEl,
       ghost,
       scrollContainer,
-      offsetX: e.clientX - rect.left,
-      offsetY: e.clientY - rect.top
+      offsetX: clientX - rect.left,
+      offsetY: clientY - rect.top
     };
+    return true;
+  }
 
-    window.addEventListener('pointermove', onPointerMove, { passive: false });
-    window.addEventListener('pointerup', onPointerUp);
-    window.addEventListener('pointercancel', onPointerUp);
+  // Touch listeners (iOS / iPadOS / Android)
+  document.addEventListener('touchstart', (e) => {
+    if (e.touches.length !== 1) return;
+    const t = e.touches[0];
+    beginDrag(t.clientX, t.clientY, e.target, e);
+  }, { passive: false });
+
+  document.addEventListener('touchmove', (e) => {
+    if (!dragState || e.touches.length !== 1) return;
+    const t = e.touches[0];
+    moveDrag(t.clientX, t.clientY, e);
+  }, { passive: false });
+
+  document.addEventListener('touchend', () => {
+    if (dragState) endDrag();
+  });
+
+  document.addEventListener('touchcancel', () => {
+    if (dragState) endDrag();
+  });
+
+  // Mouse listeners (Desktop)
+  document.addEventListener('mousedown', (e) => {
+    if (e.button !== 0) return;
+    if (!beginDrag(e.clientX, e.clientY, e.target, e)) return;
+    const onMouseMove = (ev) => moveDrag(ev.clientX, ev.clientY, ev);
+    const onMouseUp = () => {
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', onMouseUp);
+      endDrag();
+    };
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
   });
 }
 
