@@ -153,15 +153,7 @@ function loadState() {
       }
     }
     if (Array.isArray(parsed.products)) {
-      const isOldDefault =
-        parsed.products.length === 15 &&
-        parsed.products[0]?.name === 'Kaffee / Espresso' &&
-        parsed.products[2]?.name === 'Bio-Tee (Krug)';
-      if (isOldDefault) {
-        state.products = structuredClone(DEFAULT_PRODUCTS);
-      } else {
-        state.products = parsed.products.map((p, idx) => sanitizeProduct(p, idx));
-      }
+      state.products = parsed.products.map((p, idx) => sanitizeProduct(p, idx));
     }
     if (Array.isArray(parsed.orders)) {
       state.orders = parsed.orders;
