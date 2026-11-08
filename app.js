@@ -212,6 +212,7 @@ function renderHeader() {
 // Switch active view
 function switchView(viewName) {
   state.activeView = viewName;
+  setMobileCartOpen(false);
   document.querySelectorAll('.nav-tab').forEach((tab) => {
     const isMatch = tab.dataset.view === viewName;
     tab.classList.toggle('active', isMatch);
@@ -386,9 +387,18 @@ function updateCartItemQty(id, delta) {
   renderCart();
 }
 
+function setMobileCartOpen(isOpen) {
+  const panel = document.getElementById('pos-cart-panel');
+  const backdrop = document.getElementById('mobile-cart-backdrop');
+  if (!panel || !backdrop) return;
+  panel.classList.toggle('mobile-open', Boolean(isOpen));
+  backdrop.classList.toggle('hidden', !isOpen);
+}
+
 function clearCart() {
   state.cart = [];
   state.cashGiven = 0;
+  setMobileCartOpen(false);
   renderPOSProducts();
   renderCart();
 }
@@ -407,6 +417,15 @@ function renderCart() {
   const lastBanner = document.getElementById('last-order-banner');
   const lastSummary = document.getElementById('last-order-summary');
 
+  // Mobile Dock Elements
+  const mobBadge = document.getElementById('mobile-cart-badge');
+  const mobTotal = document.getElementById('mobile-cart-total');
+  const mobHint = document.getElementById('mobile-cart-hint');
+  const mobPayCash = document.getElementById('btn-mobile-pay-cash');
+  const mobPayTwint = document.getElementById('btn-mobile-pay-twint');
+  const mobUndoBanner = document.getElementById('mobile-undo-banner');
+  const mobUndoSummary = document.getElementById('mobile-undo-summary');
+
   const totalItems = state.cart.reduce((sum, item) => sum + item.qty, 0);
   const totalAmount = getCartTotal();
 
@@ -418,15 +437,29 @@ function renderCart() {
   payCashBtn.disabled = isEmpty;
   payTwintBtn.disabled = isEmpty;
 
+  if (mobBadge) mobBadge.textContent = String(totalItems);
+  if (mobTotal) mobTotal.textContent = formatCHF(totalAmount);
+  if (mobHint) {
+    mobHint.textContent = isEmpty
+      ? 'Artikel antippen zum Starten'
+      : 'Warenkorb & Rückgeld ▲';
+  }
+  if (mobPayCash) mobPayCash.disabled = isEmpty;
+  if (mobPayTwint) mobPayTwint.disabled = isEmpty;
+
   // Show Undo banner if cart is empty and there is at least 1 order
   if (isEmpty && state.orders.length > 0) {
     const latest = state.orders[0];
     const timeStr = new Date(latest.timestamp).toLocaleTimeString('de-CH', { hour: '2-digit', minute: '2-digit' });
     const methodLabel = latest.paymentMethod === 'twint' ? 'TWINT' : 'Bar';
-    lastSummary.textContent = `${formatCHF(latest.total)} (${methodLabel}, ${timeStr})`;
+    const summaryText = `${formatCHF(latest.total)} (${methodLabel}, ${timeStr})`;
+    lastSummary.textContent = summaryText;
     lastBanner.classList.remove('hidden');
+    if (mobUndoSummary) mobUndoSummary.textContent = `Letzte: ${summaryText}`;
+    if (mobUndoBanner) mobUndoBanner.classList.remove('hidden');
   } else {
     lastBanner.classList.add('hidden');
+    if (mobUndoBanner) mobUndoBanner.classList.add('hidden');
   }
 
   if (isEmpty) {
@@ -505,6 +538,7 @@ function completeCheckout(paymentMethod) {
   state.orders.unshift(order);
   state.cart = [];
   state.cashGiven = 0;
+  setMobileCartOpen(false);
   saveState();
   renderHeader();
   renderPOS();
@@ -805,8 +839,8 @@ function renderMenuEditor() {
             </div>
           </div>
           <div class="editor-item-actions">
-            <button type="button" class="btn-row-action" data-toggle-active="${escapeHtml(prod.id)}">
-              ${isInactive ? '👁️ Einblenden' : '⏸ Ausblenden'}
+            <button type="button" class="btn-row-action" data-toggle-active="${escapeHtml(prod.id)}" title="${isInactive ? 'Einblenden' : 'Ausblenden'}">
+              ${isInactive ? '👁️ <span class="action-text-mobile-hide">Einblenden</span>' : '⏸ <span class="action-text-mobile-hide">Ausblenden</span>'}
             </button>
             <button type="button" class="btn-row-action btn-edit-primary" data-edit-prod="${escapeHtml(prod.id)}">
               ✏️ Bearbeiten
@@ -1298,6 +1332,19 @@ function initEvents() {
   // Checkout Buttons
   document.getElementById('btn-pay-cash').addEventListener('click', () => completeCheckout('cash'));
   document.getElementById('btn-pay-twint').addEventListener('click', () => completeCheckout('twint'));
+
+  // Mobile Cart Sheet & Quick Pay
+  document.getElementById('btn-open-mobile-cart')?.addEventListener('click', () => setMobileCartOpen(true));
+  document.getElementById('btn-close-mobile-cart')?.addEventListener('click', () => setMobileCartOpen(false));
+  document.getElementById('cart-sheet-handle')?.addEventListener('click', () => setMobileCartOpen(false));
+  document.getElementById('mobile-cart-backdrop')?.addEventListener('click', () => setMobileCartOpen(false));
+  document.getElementById('btn-mobile-pay-cash')?.addEventListener('click', () => completeCheckout('cash'));
+  document.getElementById('btn-mobile-pay-twint')?.addEventListener('click', () => completeCheckout('twint'));
+  document.getElementById('btn-mobile-undo')?.addEventListener('click', () => {
+    if (state.orders.length > 0) {
+      cancelOrder(state.orders[0].id);
+    }
+  });
 
   // Custom Amount Modal
   document.getElementById('btn-open-custom-item').addEventListener('click', () => {

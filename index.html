@@ -59,18 +59,54 @@
           <div class="catalog-scroll" id="pos-catalog-container">
             <!-- Populated by JS (Grouped by category or single filtered category) -->
           </div>
+
+          <!-- Mobile Sticky Bottom Checkout Bar (only visible on <= 720px) -->
+          <div class="mobile-bottom-dock" id="mobile-bottom-dock">
+            <div class="mobile-undo-banner hidden" id="mobile-undo-banner">
+              <span class="mobile-undo-text" id="mobile-undo-summary">Letzte: CHF 0.00</span>
+              <button class="btn-undo-last" id="btn-mobile-undo" type="button">↩ Stornieren</button>
+            </div>
+            <div class="mobile-cart-bar">
+              <button class="mobile-cart-trigger" id="btn-open-mobile-cart" type="button">
+                <span class="mobile-cart-badge" id="mobile-cart-badge">0</span>
+                <div class="mobile-cart-summary">
+                  <strong id="mobile-cart-total">CHF 0.00</strong>
+                  <small id="mobile-cart-hint">Warenkorb &amp; Rückgeld ▲</small>
+                </div>
+              </button>
+              <div class="mobile-quick-pay">
+                <button class="btn-mobile-pay cash" id="btn-mobile-pay-cash" type="button" disabled title="Bar kassieren">
+                  💵 Bar
+                </button>
+                <button class="btn-mobile-pay twint" id="btn-mobile-pay-twint" type="button" disabled title="TWINT / Karte">
+                  📱 TWINT
+                </button>
+              </div>
+            </div>
+          </div>
         </section>
 
-        <!-- Right Side: Current Order & Checkout -->
-        <aside class="cart-panel">
+        <!-- Backdrop for Mobile Slide-Up Cart Drawer -->
+        <div class="mobile-cart-backdrop hidden" id="mobile-cart-backdrop"></div>
+
+        <!-- Right Side: Current Order & Checkout (Sidebar on iPad/Desktop, Slide-up Sheet on Mobile) -->
+        <aside class="cart-panel" id="pos-cart-panel">
+          <div class="cart-sheet-handle" id="cart-sheet-handle" aria-hidden="true">
+            <span></span>
+          </div>
           <div class="cart-header">
             <div class="cart-header-titles">
               <h2>Aktuelle Bestellung</h2>
               <span class="cart-count" id="cart-item-count">0 Artikel</span>
             </div>
-            <button class="btn-clear-cart" id="btn-clear-cart" type="button" disabled>
-              Leeren
-            </button>
+            <div class="cart-header-actions">
+              <button class="btn-clear-cart" id="btn-clear-cart" type="button" disabled>
+                Leeren
+              </button>
+              <button class="btn-close-mobile-cart" id="btn-close-mobile-cart" type="button" aria-label="Warenkorb schliessen">
+                ✕ Fertig
+              </button>
+            </div>
           </div>
 
           <div class="cart-items" id="cart-items-list">
