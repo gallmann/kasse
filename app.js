@@ -26,21 +26,26 @@ const DEFAULT_CATEGORIES = [
 ];
 
 const DEFAULT_PRODUCTS = [
-  { id: 'p1', name: 'Kaffee / Espresso', price: 4.20, category: 'Kaffee & Warmes', emoji: '☕', color: 'theme-amber', active: true },
-  { id: 'p2', name: 'Cappuccino / Latte', price: 4.80, category: 'Kaffee & Warmes', emoji: '☕', color: 'theme-amber', active: true },
-  { id: 'p3', name: 'Bio-Tee (Krug)', price: 4.50, category: 'Kaffee & Warmes', emoji: '🫖', color: 'theme-amber', active: true },
-  { id: 'p4', name: 'Hausgemachter Eistee', price: 4.50, category: 'Kaltgetränke', emoji: '🍋', color: 'theme-teal', active: true },
-  { id: 'p5', name: 'Apfelschorle / Citro', price: 4.50, category: 'Kaltgetränke', emoji: '🥤', color: 'theme-blue', active: true },
-  { id: 'p6', name: 'Mineralwasser (3 dl)', price: 3.50, category: 'Kaltgetränke', emoji: '🥤', color: 'theme-blue', active: true },
-  { id: 'p7', name: 'Bier lokal (3.3 dl)', price: 5.50, category: 'Kaltgetränke', emoji: '🍺', color: 'theme-green', active: true },
-  { id: 'p8', name: 'Weisswein / Rosé (1 dl)', price: 6.00, category: 'Kaltgetränke', emoji: '🍷', color: 'theme-purple', active: true },
-  { id: 'p9', name: 'Hausgemachter Kuchen', price: 5.50, category: 'Kuchen & Süsses', emoji: '🍰', color: 'theme-rose', active: true },
-  { id: 'p10', name: 'Gipfeli / Brioche', price: 3.50, category: 'Kuchen & Süsses', emoji: '🥐', color: 'theme-rose', active: true },
-  { id: 'p11', name: 'Glace im Becher', price: 4.00, category: 'Kuchen & Süsses', emoji: '🍦', color: 'theme-rose', active: true },
-  { id: 'p12', name: 'Frische Wähe / Quiche', price: 8.50, category: 'Herzhaftes', emoji: '🥧', color: 'theme-terracotta', active: true },
-  { id: 'p13', name: 'Gartensalat mit Brot', price: 9.50, category: 'Herzhaftes', emoji: '🥗', color: 'theme-green', active: true },
-  { id: 'p14', name: 'Tagessuppe mit Brot', price: 9.00, category: 'Herzhaftes', emoji: '🍲', color: 'theme-terracotta', active: true },
-  { id: 'p15', name: 'Focaccia / Sandwich', price: 8.00, category: 'Herzhaftes', emoji: '🥪', color: 'theme-terracotta', active: true }
+  { id: 'p1', name: 'Kaffee Crème / Espresso', price: 4.20, category: 'Kaffee & Warmes', emoji: '☕', color: 'theme-amber', active: true },
+  { id: 'p2', name: 'Cappuccino', price: 4.80, category: 'Kaffee & Warmes', emoji: '☕', color: 'theme-amber', active: true },
+  { id: 'p3', name: 'Latte Macchiato', price: 5.00, category: 'Kaffee & Warmes', emoji: '☕', color: 'theme-amber', active: true },
+  { id: 'p4', name: 'Summerkafi', price: 5.50, category: 'Kaffee & Warmes', emoji: '🧋', color: 'theme-amber', active: true },
+  { id: 'p5', name: 'Heissi / Chalti Schoggi', price: 4.50, category: 'Kaffee & Warmes', emoji: '🍫', color: 'theme-amber', active: true },
+  { id: 'p6', name: 'Tee', price: 4.20, category: 'Kaffee & Warmes', emoji: '🫖', color: 'theme-amber', active: true },
+  { id: 'p7', name: 'Cüpli', price: 6.00, category: 'Kaltgetränke', emoji: '🥂', color: 'theme-purple', active: true },
+  { id: 'p8', name: 'Sommerdrink / Apéro', price: 7.50, category: 'Kaltgetränke', emoji: '🍹', color: 'theme-purple', active: true },
+  { id: 'p9', name: 'Weisswein / Rosé (1 dl)', price: 6.00, category: 'Kaltgetränke', emoji: '🍷', color: 'theme-purple', active: true },
+  { id: 'p10', name: 'Bier (3.3 dl)', price: 5.50, category: 'Kaltgetränke', emoji: '🍺', color: 'theme-green', active: true },
+  { id: 'p11', name: 'Orangensaft', price: 4.50, category: 'Kaltgetränke', emoji: '🧃', color: 'theme-teal', active: true },
+  { id: 'p12', name: 'Hausgemachter Eistee', price: 4.50, category: 'Kaltgetränke', emoji: '🍋', color: 'theme-teal', active: true },
+  { id: 'p13', name: 'Apfelschorle / Citro', price: 4.50, category: 'Kaltgetränke', emoji: '🥤', color: 'theme-blue', active: true },
+  { id: 'p14', name: 'Mineralwasser (3 dl)', price: 3.50, category: 'Kaltgetränke', emoji: '🥤', color: 'theme-blue', active: true },
+  { id: 'p15', name: 'Hausgemachter Kuchen', price: 5.50, category: 'Kuchen & Süsses', emoji: '🍰', color: 'theme-rose', active: true },
+  { id: 'p16', name: 'Gipfeli / Zopf', price: 3.50, category: 'Kuchen & Süsses', emoji: '🥐', color: 'theme-rose', active: true },
+  { id: 'p17', name: 'Glace im Becher', price: 4.00, category: 'Kuchen & Süsses', emoji: '🍦', color: 'theme-rose', active: true },
+  { id: 'p18', name: 'Frische Wähe / Quiche', price: 8.50, category: 'Herzhaftes', emoji: '🥧', color: 'theme-terracotta', active: true },
+  { id: 'p19', name: 'Gartensalat mit Brot', price: 9.50, category: 'Herzhaftes', emoji: '🥗', color: 'theme-green', active: true },
+  { id: 'p20', name: 'Tagessuppe mit Brot', price: 9.00, category: 'Herzhaftes', emoji: '🍲', color: 'theme-terracotta', active: true }
 ];
 
 // Application State
@@ -148,7 +153,15 @@ function loadState() {
       }
     }
     if (Array.isArray(parsed.products)) {
-      state.products = parsed.products.map((p, idx) => sanitizeProduct(p, idx));
+      const isOldDefault =
+        parsed.products.length === 15 &&
+        parsed.products[0]?.name === 'Kaffee / Espresso' &&
+        parsed.products[2]?.name === 'Bio-Tee (Krug)';
+      if (isOldDefault) {
+        state.products = structuredClone(DEFAULT_PRODUCTS);
+      } else {
+        state.products = parsed.products.map((p, idx) => sanitizeProduct(p, idx));
+      }
     }
     if (Array.isArray(parsed.orders)) {
       state.orders = parsed.orders;
