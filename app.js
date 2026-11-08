@@ -401,7 +401,6 @@ function setMobileCartOpen(isOpen) {
 function initMobileSheetSwipe() {
   const panel = document.getElementById('pos-cart-panel');
   const backdrop = document.getElementById('mobile-cart-backdrop');
-  const dock = document.getElementById('mobile-bottom-dock');
   const cartItemsEl = document.getElementById('cart-items-list');
   if (!panel || !backdrop) return;
 
@@ -540,26 +539,6 @@ function initMobileSheetSwipe() {
     window.addEventListener('mousemove', onMouseMove);
     window.addEventListener('mouseup', onMouseUp);
   });
-
-  // Also allow swiping up on the bottom dock to open the sheet
-  if (dock) {
-    let dockStartY = null;
-    dock.addEventListener('touchstart', (e) => {
-      if (window.innerWidth > 720 || e.touches.length !== 1) return;
-      dockStartY = e.touches[0].clientY;
-    }, { passive: true });
-    dock.addEventListener('touchmove', (e) => {
-      if (dockStartY === null || e.touches.length !== 1) return;
-      if (dockStartY - e.touches[0].clientY > 24) {
-        dockStartY = null;
-        if (e.cancelable) e.preventDefault();
-        setMobileCartOpen(true);
-      }
-    }, { passive: false });
-    dock.addEventListener('touchend', () => {
-      dockStartY = null;
-    });
-  }
 }
 
 function clearCart() {
