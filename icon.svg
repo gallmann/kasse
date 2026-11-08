@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="112" fill="#2d6a4f"/>
+  <circle cx="256" cy="256" r="190" fill="#40916c" opacity="0.35"/>
+  <!-- Coffee cup / Bistro icon -->
+  <path d="M144 208h176v96c0 44.2-35.8 80-80 80h-16c-44.2 0-80-35.8-80-80v-96z" fill="#fff8f0"/>
+  <path d="M320 224h32c26.5 0 48 21.5 48 48s-21.5 48-48 48h-32v-32h32c8.8 0 16-7.2 16-16s-7.2-16-16-16h-32v-32z" fill="#fff8f0"/>
+  <rect x="128" y="404" width="208" height="24" rx="12" fill="#d8f3dc"/>
+  <!-- Leaf accent -->
+  <path d="M240 116c0-28 36-44 64-44 0 28-16 64-44 64-11 0-20-9-20-20z" fill="#95d5b2"/>
+  <path d="M212 136c-20-16-24-44-12-60 20 8 36 28 32 52-2 10-12 14-20 8z" fill="#74c69d"/>
+</svg>

@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="de-CH">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Bistro Kasse" />
+  <meta name="theme-color" content="#2d6a4f" />
+  <title>Gartenbistro Kasse</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" type="image/svg+xml" href="icon.svg" />
+  <link rel="apple-touch-icon" href="icon.svg" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <!-- Top Navigation Bar -->
+    <header class="topbar">
+      <div class="brand" id="btn-edit-bistro-name" title="Name antippen zum Ändern">
+        <span class="brand-icon">🌿</span>
+        <div class="brand-text">
+          <h1 id="bistro-title">Gartenbistro</h1>
+          <span class="brand-subtitle" id="current-date-display">Kasse</span>
+        </div>
+      </div>
+
+      <nav class="main-nav" role="tablist">
+        <button class="nav-tab active" data-view="pos" role="tab" aria-selected="true" type="button">
+          <span class="nav-icon">🛒</span>
+          <span>Kasse</span>
+        </button>
+        <button class="nav-tab" data-view="stats" role="tab" aria-selected="false" type="button">
+          <span class="nav-icon">📊</span>
+          <span>Tagesumsatz</span>
+          <span class="nav-badge" id="nav-stats-badge">CHF 0.00</span>
+        </button>
+        <button class="nav-tab" data-view="menu" role="tab" aria-selected="false" type="button">
+          <span class="nav-icon">✏️</span>
+          <span>Sortiment</span>
+        </button>
+      </nav>
+    </header>
+
+    <!-- VIEW 1: POS / KASSE -->
+    <main id="view-pos" class="view active">
+      <div class="pos-layout">
+        <!-- Left Side: Categories + Grouped Product Catalog -->
+        <section class="catalog-panel">
+          <div class="category-bar-wrapper">
+            <div class="category-bar" id="pos-category-bar">
+              <!-- Populated by JS -->
+            </div>
+            <button class="btn-custom-amount" id="btn-open-custom-item" type="button">
+              <span>＋ Freier Betrag</span>
+            </button>
+          </div>
+
+          <div class="catalog-scroll" id="pos-catalog-container">
+            <!-- Populated by JS (Grouped by category or single filtered category) -->
+          </div>
+        </section>
+
+        <!-- Right Side: Current Order & Checkout -->
+        <aside class="cart-panel">
+          <div class="cart-header">
+            <div class="cart-header-titles">
+              <h2>Aktuelle Bestellung</h2>
+              <span class="cart-count" id="cart-item-count">0 Artikel</span>
+            </div>
+            <button class="btn-clear-cart" id="btn-clear-cart" type="button" disabled>
+              Leeren
+            </button>
+          </div>
+
+          <div class="cart-items" id="cart-items-list">
+            <!-- Populated by JS -->
+          </div>
+
+          <!-- Undo Banner when cart is empty and a recent order exists -->
+          <div class="last-order-banner hidden" id="last-order-banner">
+            <div class="last-order-info">
+              <span class="last-order-label">Letzte Bestellung verbucht:</span>
+              <strong id="last-order-summary">CHF 0.00</strong>
+            </div>
+            <button class="btn-undo-last" id="btn-undo-last" type="button">
+              ↩ Stornieren
+            </button>
+          </div>
+
+          <div class="cart-footer">
+            <!-- Change Calculator (Rückgeld-Rechner) -->
+            <div class="change-calc" id="change-calc-section">
+              <div class="change-calc-header">
+                <span class="change-label">💵 Gegeben (Rückgeld-Rechner)</span>
+                <button class="btn-reset-cash hidden" id="btn-reset-cash" type="button">Zurücksetzen</button>
+              </div>
+              <div class="cash-quick-buttons" id="cash-quick-buttons">
+                <button type="button" class="cash-btn cash-btn-exact" data-cash="exact">Passend</button>
+                <button type="button" class="cash-btn" data-cash="2">+ 2</button>
+                <button type="button" class="cash-btn" data-cash="5">+ 5</button>
+                <button type="button" class="cash-btn" data-cash="10">+ 10</button>
+                <button type="button" class="cash-btn" data-cash="20">+ 20</button>
+                <button type="button" class="cash-btn" data-cash="50">+ 50</button>
+                <button type="button" class="cash-btn" data-cash="100">+ 100</button>
+                <button type="button" class="cash-btn" data-cash="200">+ 200</button>
+              </div>
+              <div class="change-result hidden" id="change-result-box">
+                <div class="change-row">
+                  <span>Gegeben:</span>
+                  <strong id="cash-given-display">CHF 0.00</strong>
+                </div>
+                <div class="change-row highlight">
+                  <span id="change-due-label">Rückgeld:</span>
+                  <strong id="change-due-display">CHF 0.00</strong>
+                </div>
+              </div>
+            </div>
+
+            <!-- Total Display -->
+            <div class="total-bar">
+              <span class="total-label">Total</span>
+              <span class="total-amount" id="cart-total-amount">CHF 0.00</span>
+            </div>
+
+            <!-- Checkout Action Buttons -->
+            <div class="checkout-actions">
+              <button class="btn-checkout btn-checkout-cash" id="btn-pay-cash" type="button" disabled>
+                <span class="checkout-icon">💵</span>
+                <div class="checkout-btn-text">
+                  <strong>Bar kassieren</strong>
+                  <small>Bargeld</small>
+                </div>
+              </button>
+              <button class="btn-checkout btn-checkout-twint" id="btn-pay-twint" type="button" disabled>
+                <span class="checkout-icon">📱</span>
+                <div class="checkout-btn-text">
+                  <strong>TWINT / Karte</strong>
+                  <small>Bargeldlos</small>
+                </div>
+              </button>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </main>
+
+    <!-- VIEW 2: DAILY STATS & ORDER HISTORY -->
+    <main id="view-stats" class="view">
+      <div class="page-container">
+        <div class="page-header">
+          <div class="page-header-text">
+            <h2>Tagesumsatz &amp; Statistik</h2>
+            <p class="page-subtitle">Übersicht aller Verkäufe seit dem letzten Zurücksetzen</p>
+          </div>
+          <div class="page-actions">
+            <button class="btn-secondary" id="btn-export-csv" type="button">
+              📥 CSV Export
+            </button>
+            <button class="btn-secondary" id="btn-print-report" type="button">
+              🖨️ Drucken / PDF
+            </button>
+            <button class="btn-danger" id="btn-reset-day" type="button">
+              🗑️ Tag abschliessen
+            </button>
+          </div>
+        </div>
+
+        <!-- KPI Summary Cards -->
+        <div class="kpi-grid">
+          <div class="kpi-card kpi-primary">
+            <span class="kpi-label">Gesamtumsatz</span>
+            <strong class="kpi-value" id="stat-total-revenue">CHF 0.00</strong>
+            <span class="kpi-meta" id="stat-total-orders">0 Bestellungen</span>
+          </div>
+          <div class="kpi-card">
+            <span class="kpi-label">💵 Davon Bargeld</span>
+            <strong class="kpi-value" id="stat-cash-revenue">CHF 0.00</strong>
+            <span class="kpi-meta" id="stat-cash-orders">0 Bar-Zahlungen</span>
+          </div>
+          <div class="kpi-card">
+            <span class="kpi-label">📱 Davon TWINT / Karte</span>
+            <strong class="kpi-value" id="stat-twint-revenue">CHF 0.00</strong>
+            <span class="kpi-meta" id="stat-twint-orders">0 TWINT/Karten-Zahlungen</span>
+          </div>
+          <div class="kpi-card">
+            <span class="kpi-label">Verkaufte Artikel</span>
+            <strong class="kpi-value" id="stat-total-items">0 Stk.</strong>
+            <span class="kpi-meta" id="stat-avg-order">Ø CHF 0.00 pro Bestellung</span>
+          </div>
+        </div>
+
+        <div class="stats-columns">
+          <!-- Sold Items Breakdown -->
+          <section class="stats-card">
+            <div class="stats-card-header">
+              <h3>Verkaufte Artikel</h3>
+              <span class="badge-subtle" id="sold-items-unique-count">0 Produkte</span>
+            </div>
+            <div id="stats-items-table-wrapper" class="stats-list-container">
+              <!-- Populated by JS -->
+            </div>
+          </section>
+
+          <!-- Order History -->
+          <section class="stats-card">
+            <div class="stats-card-header">
+              <h3>Bestellverlauf</h3>
+              <span class="badge-subtle">Neueste zuerst</span>
+            </div>
+            <div id="stats-orders-list" class="stats-list-container">
+              <!-- Populated by JS -->
+            </div>
+          </section>
+        </div>
+      </div>
+    </main>
+
+    <!-- VIEW 3: MENU / SORTIMENT EDITOR -->
+    <main id="view-menu" class="view">
+      <div class="page-container">
+        <div class="page-header">
+          <div class="page-header-text">
+            <h2>Sortiment bearbeiten</h2>
+            <p class="page-subtitle">Artikel, Preise und Kategorien anpassen • Am Symbol <strong>⠿</strong> ziehen zum Umsortieren</p>
+          </div>
+          <div class="page-actions">
+            <button class="btn-secondary" id="btn-manage-categories" type="button">
+              🏷️ Kategorien
+            </button>
+            <button class="btn-secondary" id="btn-backup-menu" type="button">
+              💾 Backup / Vorlagen
+            </button>
+            <button class="btn-primary" id="btn-add-product" type="button">
+              ＋ Neuer Artikel
+            </button>
+          </div>
+        </div>
+
+        <!-- Category Filter in Editor -->
+        <div class="editor-filter-row">
+          <div class="category-bar" id="editor-category-bar">
+            <!-- Populated by JS -->
+          </div>
+        </div>
+
+        <!-- Grouped Menu Items List -->
+        <div class="editor-sections-container" id="editor-product-list">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- MODAL: ADD / EDIT PRODUCT -->
+  <div class="modal-backdrop hidden" id="modal-product">
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modal-product-title">
+      <div class="modal-header">
+        <h3 id="modal-product-title">Artikel bearbeiten</h3>
+        <button class="btn-icon-close" data-close-modal="modal-product" type="button" aria-label="Schliessen">✕</button>
+      </div>
+      <form id="form-product" class="modal-form">
+        <div class="modal-body">
+          <input type="hidden" id="prod-id" />
+
+          <div class="form-row-split">
+            <div class="form-group flex-2">
+              <label for="prod-name">Artikelname *</label>
+              <input type="text" id="prod-name" required placeholder="z.B. Hausgemachter Eistee" autocomplete="off" />
+            </div>
+            <div class="form-group flex-1">
+              <label for="prod-price">Preis (CHF) *</label>
+              <input type="number" id="prod-price" required step="0.05" min="0" placeholder="4.50" inputmode="decimal" />
+            </div>
+          </div>
+
+          <div class="form-row-split">
+            <div class="form-group flex-2">
+              <label for="prod-category">Kategorie</label>
+              <select id="prod-category"></select>
+            </div>
+            <div class="form-group flex-1">
+              <label for="prod-emoji">Symbol / Emoji</label>
+              <input type="text" id="prod-emoji" placeholder="☕" maxlength="4" />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Schnellauswahl Symbol</label>
+            <div class="emoji-picker" id="emoji-picker-list">
+              <!-- Populated by JS -->
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Tastenfarbe</label>
+            <div class="color-picker" id="color-picker-list">
+              <!-- Populated by JS -->
+            </div>
+          </div>
+
+          <div class="form-group form-checkbox-row">
+            <label class="switch-label">
+              <input type="checkbox" id="prod-active" checked />
+              <span>In der Kasse anzeigen (verfügbar)</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn-danger mr-auto hidden" id="btn-delete-product">Löschen</button>
+          <button type="button" class="btn-secondary" data-close-modal="modal-product">Abbrechen</button>
+          <button type="submit" class="btn-primary">Speichern</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: CUSTOM AMOUNT (FREIER BETRAG) -->
+  <div class="modal-backdrop hidden" id="modal-custom-item">
+    <div class="modal-card modal-sm" role="dialog" aria-modal="true" aria-labelledby="modal-custom-title">
+      <div class="modal-header">
+        <h3 id="modal-custom-title">Freier Betrag hinzufügen</h3>
+        <button class="btn-icon-close" data-close-modal="modal-custom-item" type="button" aria-label="Schliessen">✕</button>
+      </div>
+      <form id="form-custom-item" class="modal-form">
+        <div class="modal-body">
+          <div class="form-group">
+            <label for="custom-item-price">Betrag in CHF *</label>
+            <input type="number" id="custom-item-price" required step="0.05" min="0.05" placeholder="0.00" inputmode="decimal" class="input-large-price" />
+          </div>
+          <div class="quick-price-chips" id="custom-quick-prices">
+            <button type="button" class="chip-btn" data-add-price="0.5">+ 0.50</button>
+            <button type="button" class="chip-btn" data-add-price="1">+ 1.00</button>
+            <button type="button" class="chip-btn" data-add-price="2">+ 2.00</button>
+            <button type="button" class="chip-btn" data-add-price="5">+ 5.00</button>
+            <button type="button" class="chip-btn" data-add-price="10">+ 10.00</button>
+          </div>
+          <div class="form-group">
+            <label for="custom-item-name">Bezeichnung (optional)</label>
+            <input type="text" id="custom-item-name" placeholder="z.B. Diverses / Spezialwunsch" autocomplete="off" />
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" data-close-modal="modal-custom-item">Abbrechen</button>
+          <button type="submit" class="btn-primary">Hinzufügen</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: MANAGE CATEGORIES -->
+  <div class="modal-backdrop hidden" id="modal-categories">
+    <div class="modal-card modal-sm" role="dialog" aria-modal="true">
+      <div class="modal-header">
+        <h3>Kategorien verwalten</h3>
+        <button class="btn-icon-close" data-close-modal="modal-categories" type="button" aria-label="Schliessen">✕</button>
+      </div>
+      <div class="modal-body">
+        <form id="form-add-category" class="category-add-row">
+          <input type="text" id="new-category-name" placeholder="Neue Kategorie (z.B. Glace)" required autocomplete="off" />
+          <button type="submit" class="btn-primary">＋ Hinzufügen</button>
+        </form>
+        <div id="categories-manage-list" class="categories-manage-list">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-primary" data-close-modal="modal-categories">Fertig</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: BACKUP & TEMPLATES -->
+  <div class="modal-backdrop hidden" id="modal-backup">
+    <div class="modal-card modal-sm" role="dialog" aria-modal="true">
+      <div class="modal-header">
+        <h3>Sortiment sichern &amp; laden</h3>
+        <button class="btn-icon-close" data-close-modal="modal-backup" type="button" aria-label="Schliessen">✕</button>
+      </div>
+      <div class="modal-body backup-actions-list">
+        <div class="backup-box">
+          <h4>📤 Sortiment als Datei speichern</h4>
+          <p>Speichert alle Artikel und Kategorien als Backup-Datei auf dem Gerät.</p>
+          <button type="button" class="btn-secondary full-width" id="btn-export-json">Sortiment exportieren (.json)</button>
+        </div>
+        <div class="backup-box">
+          <h4>📥 Sortiment aus Datei laden</h4>
+          <p>Lädt ein zuvor gespeichertes Sortiment von einer Datei.</p>
+          <label class="btn-secondary full-width file-upload-label">
+            <span>Datei auswählen (.json)</span>
+            <input type="file" id="input-import-json" accept=".json,application/json" hidden />
+          </label>
+        </div>
+        <div class="backup-box">
+          <h4>🌱 Beispiel-Sortiment wiederherstellen</h4>
+          <p>Setzt die Artikelliste auf das Gartenbistro-Standardmenü zurück.</p>
+          <button type="button" class="btn-danger full-width" id="btn-reset-default-menu">Standard-Sortiment laden</button>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-primary" data-close-modal="modal-backup">Schliessen</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
