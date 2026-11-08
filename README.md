@@ -44,3 +44,15 @@ Da die App komplett ohne komplexe Server oder Datenbanken auskommt, kann sie:
   python3 -m http.server 8080
   ```
   Danach im Browser `http://localhost:8080` öffnen.
+
+## 🧪 Automatische Tests
+
+Die Test-Suite prüft Rappen-Rundung (`0.05 CHF`), Warenkorb- & Rückgeld-Logik, Sortiment-Synchronisation, `localStorage`-Persistenz sowie Service-Worker-Cache-Versionen komplett ohne externe Abhängigkeiten:
+
+```bash
+# Mit Node.js:
+node tests/run-tests.js
+
+# Oder direkt auf macOS (ohne Node.js):
+/System/Library/Frameworks/JavaScriptCore.framework/Versions/Current/Helpers/jsc tests/run-tests.js
+```

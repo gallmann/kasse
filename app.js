@@ -1779,20 +1779,24 @@ function initEvents() {
 }
 
 // Request persistent storage and register Service Worker for offline use on iPad
-if (navigator.storage && navigator.storage.persist) {
-  navigator.storage.persist().catch(() => {});
-}
+if (typeof window !== 'undefined' && window.__KASSE_TEST_ENV__) {
+  window.__kasse = { state, DEFAULT_CATEGORIES, DEFAULT_PRODUCTS, STORAGE_KEY, FALLBACK_CATEGORY };
+} else if (typeof window !== 'undefined') {
+  if (navigator.storage && navigator.storage.persist) {
+    navigator.storage.persist().catch(() => {});
+  }
 
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js').catch(() => {});
-  });
-}
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./sw.js').catch(() => {});
+    });
+  }
 
-// Boot
-loadState();
-initEvents();
-initDragAndDrop();
-initMobileSheetSwipe();
-renderHeader();
-renderPOS();
+  // Boot
+  loadState();
+  initEvents();
+  initDragAndDrop();
+  initMobileSheetSwipe();
+  renderHeader();
+  renderPOS();
+}
