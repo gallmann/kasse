@@ -420,12 +420,9 @@ function initMobileSheetSwipe() {
       startX: clientX,
       startY: clientY,
       lastY: clientY,
-      prevY: clientY,
-      lastTime: now,
-      prevTime: now,
+      samples: [{ y: clientY, t: now }],
       hasMoved: false,
       aborted: false,
-      startedOnHandle: Boolean(handle),
       startedInItems: Boolean(inItems),
       sheetHeight: panel.offsetHeight || 400
     };
@@ -440,8 +437,8 @@ function initMobileSheetSwipe() {
     if (!swipeState.hasMoved) {
       if (Math.abs(rawDeltaY) < 6 && Math.abs(rawDeltaX) < 6) return;
 
-      // If horizontal movement dominates, abort sheet swipe
-      if (Math.abs(rawDeltaX) > Math.abs(rawDeltaY) * 1.2) {
+      // If horizontal movement dominates, or user starts by swiping UP, abort sheet close gesture
+      if (Math.abs(rawDeltaX) > Math.abs(rawDeltaY) * 1.2 || rawDeltaY < 0) {
         swipeState.aborted = true;
         return;
       }
@@ -449,7 +446,7 @@ function initMobileSheetSwipe() {
       // If started inside the scrollable cart items list, only drag sheet when at top and pulling down
       if (swipeState.startedInItems) {
         const atTop = !cartItemsEl || cartItemsEl.scrollTop <= 2;
-        if (!atTop || rawDeltaY <= 0) {
+        if (!atTop) {
           swipeState.aborted = true;
           return;
         }
@@ -463,42 +460,50 @@ function initMobileSheetSwipe() {
       if (originalEvent.cancelable) {
         originalEvent.preventDefault();
       }
-      swipeState.prevY = swipeState.lastY;
-      swipeState.prevTime = swipeState.lastTime;
+      const now = performance.now();
       swipeState.lastY = clientY;
-      swipeState.lastTime = performance.now();
+      swipeState.samples.push({ y: clientY, t: now });
+      // Keep last 100ms of movement samples for accurate release direction/velocity
+      while (swipeState.samples.length > 2 && now - swipeState.samples[0].t > 100) {
+        swipeState.samples.shift();
+      }
 
-      const translateY = rawDeltaY >= 0 ? rawDeltaY : rawDeltaY * 0.15;
+      const translateY = Math.max(0, rawDeltaY);
       panel.style.transform = `translateY(${translateY}px)`;
-      const progress = Math.min(1, Math.max(0, rawDeltaY / swipeState.sheetHeight));
+      const progress = Math.min(1, Math.max(0, translateY / swipeState.sheetHeight));
       backdrop.style.opacity = String(1 - progress * 0.85);
     }
   }
 
   function endSwipe(endClientY) {
     if (!swipeState) return;
-    const { startY, lastY, prevY, lastTime, prevTime, hasMoved, aborted, startedOnHandle, sheetHeight } = swipeState;
+    const { startY, lastY, samples, hasMoved, aborted, sheetHeight } = swipeState;
     swipeState = null;
 
     panel.classList.remove('sheet-dragging');
     panel.style.transform = '';
     backdrop.style.opacity = '';
 
-    if (aborted) return;
-
-    if (!hasMoved) {
-      if (startedOnHandle) {
-        setMobileCartOpen(false);
-      }
-      return;
-    }
+    if (aborted || !hasMoved) return;
 
     const finalY = typeof endClientY === 'number' ? endClientY : lastY;
     const totalDeltaY = finalY - startY;
-    const dt = Math.max(1, lastTime - prevTime);
-    const velocity = (lastY - prevY) / dt; // px per ms
 
-    if (totalDeltaY > 55 || totalDeltaY > sheetHeight * 0.18 || (totalDeltaY > 18 && velocity > 0.28)) {
+    const firstSample = samples[0];
+    const lastSample = samples[samples.length - 1];
+    const dt = Math.max(1, lastSample.t - firstSample.t);
+    const velocityY = (finalY - firstSample.y) / dt; // positive = downward, negative = upward
+
+    // Never close if the user was moving/flinging upward at release
+    if (velocityY < -0.05 || totalDeltaY <= 0) {
+      setMobileCartOpen(true);
+      return;
+    }
+
+    const draggedFarEnough = totalDeltaY > 90 || totalDeltaY > sheetHeight * 0.25;
+    const flungDownward = totalDeltaY > 25 && velocityY > 0.3;
+
+    if (draggedFarEnough || flungDownward) {
       setMobileCartOpen(false);
     } else {
       setMobileCartOpen(true);
