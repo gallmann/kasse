@@ -1,4 +1,4 @@
-const CACHE_NAME = 'gartenbistro-kasse-v5';
+const CACHE_NAME = 'gartenbistro-kasse-v6';
 const ASSETS = [
   './',
   './index.html',

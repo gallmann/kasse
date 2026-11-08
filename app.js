@@ -391,8 +391,123 @@ function setMobileCartOpen(isOpen) {
   const panel = document.getElementById('pos-cart-panel');
   const backdrop = document.getElementById('mobile-cart-backdrop');
   if (!panel || !backdrop) return;
+  panel.classList.remove('sheet-dragging');
+  panel.style.transform = '';
+  backdrop.style.opacity = '';
   panel.classList.toggle('mobile-open', Boolean(isOpen));
   backdrop.classList.toggle('hidden', !isOpen);
+}
+
+function initMobileSheetSwipe() {
+  const panel = document.getElementById('pos-cart-panel');
+  const backdrop = document.getElementById('mobile-cart-backdrop');
+  const dock = document.getElementById('mobile-bottom-dock');
+  if (!panel || !backdrop) return;
+
+  let swipeState = null;
+
+  function onSheetPointerMove(e) {
+    if (!swipeState || e.pointerId !== swipeState.pointerId) return;
+    const rawDelta = e.clientY - swipeState.startY;
+
+    if (!swipeState.hasMoved && Math.abs(rawDelta) > 5) {
+      swipeState.hasMoved = true;
+      panel.classList.add('sheet-dragging');
+    }
+
+    if (swipeState.hasMoved) {
+      e.preventDefault();
+      swipeState.prevY = swipeState.lastY;
+      swipeState.prevTime = swipeState.lastTime;
+      swipeState.lastY = e.clientY;
+      swipeState.lastTime = performance.now();
+
+      const translateY = rawDelta >= 0 ? rawDelta : rawDelta * 0.15;
+      panel.style.transform = `translateY(${translateY}px)`;
+      const progress = Math.min(1, Math.max(0, rawDelta / swipeState.sheetHeight));
+      backdrop.style.opacity = String(1 - progress * 0.85);
+    }
+  }
+
+  function onSheetPointerUp(e) {
+    if (!swipeState || e.pointerId !== swipeState.pointerId) return;
+    const { startY, lastY, prevY, lastTime, prevTime, hasMoved, startedOnHandle, sheetHeight } = swipeState;
+
+    window.removeEventListener('pointermove', onSheetPointerMove);
+    window.removeEventListener('pointerup', onSheetPointerUp);
+    window.removeEventListener('pointercancel', onSheetPointerUp);
+    swipeState = null;
+
+    panel.classList.remove('sheet-dragging');
+    panel.style.transform = '';
+    backdrop.style.opacity = '';
+
+    if (!hasMoved) {
+      if (startedOnHandle) {
+        setMobileCartOpen(false);
+      }
+      return;
+    }
+
+    const totalDeltaY = (e.clientY ?? lastY) - startY;
+    const dt = Math.max(1, lastTime - prevTime);
+    const velocity = (lastY - prevY) / dt; // px per ms
+
+    if (totalDeltaY > 70 || totalDeltaY > sheetHeight * 0.22 || (totalDeltaY > 20 && velocity > 0.35)) {
+      setMobileCartOpen(false);
+    } else {
+      setMobileCartOpen(true);
+    }
+  }
+
+  panel.addEventListener('pointerdown', (e) => {
+    if (window.innerWidth > 720 || !panel.classList.contains('mobile-open')) return;
+    const handle = e.target.closest('#cart-sheet-handle');
+    const header = e.target.closest('.cart-header');
+    const interactiveInHeader = e.target.closest('button, input, select, a');
+
+    // Start swipe when dragging handle or non-button area of cart header
+    if (!handle && (!header || interactiveInHeader)) return;
+
+    const now = performance.now();
+    swipeState = {
+      pointerId: e.pointerId,
+      startY: e.clientY,
+      lastY: e.clientY,
+      prevY: e.clientY,
+      lastTime: now,
+      prevTime: now,
+      hasMoved: false,
+      startedOnHandle: Boolean(handle),
+      sheetHeight: panel.offsetHeight || 400
+    };
+
+    window.addEventListener('pointermove', onSheetPointerMove, { passive: false });
+    window.addEventListener('pointerup', onSheetPointerUp);
+    window.addEventListener('pointercancel', onSheetPointerUp);
+  });
+
+  // Also allow swiping up on the bottom dock to open the sheet
+  if (dock) {
+    let dockStartY = null;
+    dock.addEventListener('pointerdown', (e) => {
+      if (window.innerWidth > 720) return;
+      dockStartY = e.clientY;
+    });
+    dock.addEventListener('pointermove', (e) => {
+      if (dockStartY === null) return;
+      if (dockStartY - e.clientY > 28) {
+        dockStartY = null;
+        setMobileCartOpen(true);
+      }
+    });
+    dock.addEventListener('pointerup', () => {
+      dockStartY = null;
+    });
+    dock.addEventListener('pointercancel', () => {
+      dockStartY = null;
+    });
+  }
 }
 
 function clearCart() {
@@ -1336,7 +1451,6 @@ function initEvents() {
   // Mobile Cart Sheet & Quick Pay
   document.getElementById('btn-open-mobile-cart')?.addEventListener('click', () => setMobileCartOpen(true));
   document.getElementById('btn-close-mobile-cart')?.addEventListener('click', () => setMobileCartOpen(false));
-  document.getElementById('cart-sheet-handle')?.addEventListener('click', () => setMobileCartOpen(false));
   document.getElementById('mobile-cart-backdrop')?.addEventListener('click', () => setMobileCartOpen(false));
   document.getElementById('btn-mobile-pay-cash')?.addEventListener('click', () => completeCheckout('cash'));
   document.getElementById('btn-mobile-pay-twint')?.addEventListener('click', () => completeCheckout('twint'));
@@ -1607,5 +1721,6 @@ if ('serviceWorker' in navigator) {
 loadState();
 initEvents();
 initDragAndDrop();
+initMobileSheetSwipe();
 renderHeader();
 renderPOS();
